@@ -1,4 +1,5 @@
 #!/bin/bash
+
 echo "Starting IB Gateway with Kubernetes support..."
 
 # Start Xvfb (virtual display)
@@ -45,9 +46,9 @@ EOL
 
 echo "Starting IB Gateway..."
 
-# Start IB Gateway using IBC
+# Start IB Gateway using IBC - let IBC auto-detect the version
 cd /opt/ibc
-./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} --tws-version ${IB_GATEWAY_VERSION} &
+./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} &
 
 # Wait for IB Gateway to start
 sleep 30
