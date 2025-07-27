@@ -29,7 +29,8 @@ RUN cd /opt/ibc && \
     wget -q https://github.com/IbcAlpha/IBC/releases/download/3.15.2/IBCLinux-3.15.2.zip && \
     unzip IBCLinux-3.15.2.zip && \
     rm IBCLinux-3.15.2.zip && \
-    chmod +x *.sh
+    chmod -R +x /opt/ibc/*.sh && \
+    chmod -R +x /opt/ibc/scripts/*.sh
 
 # Copy custom entrypoint
 COPY entrypoint.sh /entrypoint.sh
