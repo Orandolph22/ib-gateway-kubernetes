@@ -10,12 +10,15 @@ sleep 2
 fluxbox &
 sleep 2
 
-# Ensure IB Gateway directory exists
-IB_GATEWAY_DIR="$HOME/Jts"
-mkdir -p "${IB_GATEWAY_DIR}"
+# IB Gateway is installed at /root/Jts/ibgateway/VERSION
+IB_GATEWAY_ROOT="/root/Jts"
+IB_GATEWAY_VERSION=$(ls -1 ${IB_GATEWAY_ROOT}/ibgateway/ | grep -E '^[0-9]+$' | sort -n | tail -1)
+IB_GATEWAY_DIR="${IB_GATEWAY_ROOT}/ibgateway/${IB_GATEWAY_VERSION}"
+
+echo "Found IB Gateway version ${IB_GATEWAY_VERSION} at: ${IB_GATEWAY_DIR}"
 
 # Create jts.ini with Kubernetes-friendly TrustedIPs
-cat <<EOL > "${IB_GATEWAY_DIR}/jts.ini"
+cat <<EOL > "${IB_GATEWAY_ROOT}/jts.ini"
 [IBGateway]
 TrustedIPs=${TRUSTED_IPS}
 LocalServerPort=7497
@@ -29,7 +32,7 @@ cat <<EOL > /opt/ibc/config.ini
 IbLoginId=${TWS_USERID}
 IbPassword=${TWS_PASSWORD}
 TradingMode=${TRADING_MODE}
-IbDir=${HOME}/Jts
+IbDir=${IB_GATEWAY_ROOT}
 IbAutoClosedown=no
 AcceptIncomingConnectionAction=accept
 AllowBlindTrading=yes
@@ -44,7 +47,7 @@ echo "Starting IB Gateway..."
 
 # Start IB Gateway using IBC
 cd /opt/ibc
-./gatewaystart.sh -inline &
+./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} --tws-version ${IB_GATEWAY_VERSION} &
 
 # Wait for IB Gateway to start
 sleep 30
@@ -60,4 +63,4 @@ for i in {1..30}; do
 done
 
 # Keep container running and show logs
-tail -f $HOME/IBController/Logs/*.log 2>/dev/null || tail -f /dev/null
+tail -f /root/ibc/logs/*.txt 2>/dev/null || tail -f /dev/null
