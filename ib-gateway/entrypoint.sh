@@ -46,8 +46,9 @@ EOL
 
 echo "Starting IB Gateway..."
 
-# Start IB Gateway using IBC - let IBC auto-detect the version
+# Start IB Gateway using IBC with version override
 cd /opt/ibc
+export TWS_MAJOR_VRSN=${IB_GATEWAY_VERSION}
 ./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} &
 
 # Wait for IB Gateway to start
