@@ -37,10 +37,8 @@ jobs:
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ github.run_number }}
     
-    - name: Setup kubectl
-      uses: tale/kubectl-action@v1
-      with:
-        base64-kube-config: ${{ secrets.KUBE_CONFIG }}
+    - name: Save DigitalOcean kubeconfig
+      run: doctl kubernetes cluster kubeconfig save project-centaur-cluster
     
     - name: Create/Update IB credentials secret
       env:
