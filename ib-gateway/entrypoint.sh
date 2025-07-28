@@ -28,9 +28,11 @@ EOL
 
 echo "Created jts.ini with TrustedIPs=${TRUSTED_IPS}"
 
-# Create IBC config in the correct location - IBC expects it at ~/ibc/config.ini
+# Create IBC config directory and file
 mkdir -p /root/ibc
-cat <<EOL > /root/ibc/config.ini
+
+# Create IBC config with proper formatting
+cat > /root/ibc/config.ini << EOL
 IbLoginId=${TWS_USERID}
 IbPassword=${TWS_PASSWORD}
 TradingMode=${TRADING_MODE}
@@ -45,13 +47,21 @@ LogToConsole=yes
 FIX=no
 EOL
 
-echo "Created IBC config at /root/ibc/config.ini"
+# Verify the config file was created
+if [ -f /root/ibc/config.ini ]; then
+    echo "IBC config created successfully at /root/ibc/config.ini"
+    echo "Config contents:"
+    cat /root/ibc/config.ini
+else
+    echo "ERROR: Failed to create IBC config file!"
+    exit 1
+fi
 
 echo "Starting IB Gateway..."
 
-# Start IB Gateway using IBC
+# Start IB Gateway using IBC with explicit config path
 cd /opt/ibc
-./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} &
+./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} --ibc-ini=/root/ibc/config.ini &
 
 # Wait for IB Gateway to start
 sleep 30
