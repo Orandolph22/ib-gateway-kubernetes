@@ -1,5 +1,4 @@
 name: Build and Push IB Gateway Image
-
 on:
   push:
     branches:
@@ -8,11 +7,9 @@ on:
       - 'ib-gateway/**'
       - '.github/workflows/build-deploy.yml'
   workflow_dispatch:
-
 env:
   REGISTRY: registry.digitalocean.com
   IMAGE_NAME: centaur-registry/ib-gateway-custom
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -46,12 +43,15 @@ jobs:
         base64-kube-config: ${{ secrets.KUBE_CONFIG }}
     
     - name: Create/Update IB credentials secret
+      env:
+        IB_USERNAME: ${{ secrets.IB_USERNAME }}
+        IB_PASSWORD: ${{ secrets.IB_PASSWORD }}
       run: |
+        kubectl delete secret ib-creds -n trading --ignore-not-found
         kubectl create secret generic ib-creds \
-          --from-literal=username="${{ secrets.IB_USERNAME }}" \
-          --from-literal=password="${{ secrets.IB_PASSWORD }}" \
-          -n trading \
-          --dry-run=client -o yaml | kubectl apply -f -
+          --from-literal=username="$IB_USERNAME" \
+          --from-literal=password="$IB_PASSWORD" \
+          -n trading
     
     - name: Deploy to Kubernetes
       run: |
