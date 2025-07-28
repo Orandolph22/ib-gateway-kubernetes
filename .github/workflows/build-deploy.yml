@@ -39,3 +39,31 @@ jobs:
       run: |
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ github.run_number }}
+    
+    - name: Setup kubectl
+      uses: tale/kubectl-action@v1
+      with:
+        base64-kube-config: ${{ secrets.KUBE_CONFIG }}
+    
+    - name: Create/Update IB credentials secret
+      run: |
+        kubectl create secret generic ib-creds \
+          --from-literal=username="${{ secrets.IB_USERNAME }}" \
+          --from-literal=password="${{ secrets.IB_PASSWORD }}" \
+          -n trading \
+          --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl set image deployment/ib-gateway \
+          ib-gateway=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ github.run_number }} \
+          -n trading
+        
+        kubectl rollout status deployment/ib-gateway -n trading
+    
+    - name: Verify deployment
+      run: |
+        echo "Waiting for IB Gateway to start..."
+        sleep 30
+        kubectl logs -n trading -l app=ib-gateway --tail=50
+        echo "Deployment complete!"
