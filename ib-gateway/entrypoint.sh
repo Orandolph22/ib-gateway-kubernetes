@@ -1,80 +1,84 @@
 #!/bin/bash
 
-echo "Starting IB Gateway with Kubernetes support..."
+set -e
 
-# Start Xvfb (virtual display)
-Xvfb :1 -screen 0 1024x768x16 &
+# Start Xvfb
+Xvfb :1 -screen 0 1024x768x24 &
 export DISPLAY=:1
 sleep 2
 
-# Start window manager
-fluxbox &
-sleep 2
+# Find IB Gateway installation
+INSTALL_DIR="/root/Jts"
+GATEWAY_VERSION=$(ls -1 ${INSTALL_DIR}/ibgateway/ | grep -E '^[0-9]+$' | sort -n | tail -1)
 
-# IB Gateway is installed at /root/Jts/ibgateway/VERSION
-IB_GATEWAY_ROOT="/root/Jts"
-IB_GATEWAY_VERSION=$(ls -1 ${IB_GATEWAY_ROOT}/ibgateway/ | grep -E '^[0-9]+$' | sort -n | tail -1)
-IB_GATEWAY_DIR="${IB_GATEWAY_ROOT}/ibgateway/${IB_GATEWAY_VERSION}"
+echo "Found IB Gateway version $GATEWAY_VERSION"
 
-echo "Found IB Gateway version ${IB_GATEWAY_VERSION} at: ${IB_GATEWAY_DIR}"
-
-# Create jts.ini with Kubernetes-friendly TrustedIPs
-cat <<EOL > "${IB_GATEWAY_ROOT}/jts.ini"
+# Create jts.ini with TrustedIPs
+mkdir -p ${INSTALL_DIR}
+cat > ${INSTALL_DIR}/jts.ini << EOL
 [IBGateway]
-TrustedIPs=${TRUSTED_IPS}
-LocalServerPort=7497
+TrustedIPs=10.0.0.0/8
 ApiOnly=true
+[Logon]
+s3store=true
+Locale=en
+displayedproxymsg=1
+UseSSL=true
 EOL
 
-echo "Created jts.ini with TrustedIPs=${TRUSTED_IPS}"
-
-# Create IBC config directory and file
+# Create comprehensive IBC configuration
 mkdir -p /root/ibc
-
-# Create IBC config with proper formatting
 cat > /root/ibc/config.ini << EOL
+# Authentication
 IbLoginId=${TWS_USERID}
 IbPassword=${TWS_PASSWORD}
-TradingMode=${TRADING_MODE}
-IbDir=${IB_GATEWAY_ROOT}
-IbAutoClosedown=no
+TradingMode=${TRADING_MODE:-paper}
+IbDir=${INSTALL_DIR}
+
+# API Configuration
+OverrideTwsApiPort=7497
 AcceptIncomingConnectionAction=accept
 AllowBlindTrading=yes
 ReadOnlyLogin=no
+
+# Dialog Handling - Critical for headless operation
+ExistingSessionDetectedAction=primary
 AcceptNonBrokerageAccountWarning=yes
-OverrideTwsApiPort=7497
+AcceptSpreadBasedChargesDisclaimer=accept
+DismissPasswordExpiryWarning=yes
+DismissNSEComplianceNotice=yes
+ConfirmExitSessionSetting=no
+
+# Logging
 LogToConsole=yes
+IbAutoClosedown=no
+ClosedownAt=
+
+# Additional settings for stability
+MinimizeMainWindow=no
 FIX=no
 EOL
 
-# Verify the config file was created
-if [ -f /root/ibc/config.ini ]; then
-    echo "IBC config created successfully at /root/ibc/config.ini"
-    echo "Config contents:"
-    cat /root/ibc/config.ini
-else
-    echo "ERROR: Failed to create IBC config file!"
-    exit 1
-fi
-
 echo "Starting IB Gateway..."
-
-# Start IB Gateway using IBC with explicit config path
 cd /opt/ibc
-./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} --ibc-ini=/root/ibc/config.ini &
+./gatewaystart.sh -inline &
+IBC_PID=$!
 
-# Wait for IB Gateway to start
-sleep 30
-
-# Check if port is listening
-for i in {1..30}; do
-    if netstat -an | grep -q "0.0.0.0:7497.*LISTEN"; then
-        echo "IB Gateway is listening on port 7497"
+# Monitor startup
+for i in {1..60}; do
+    if ! ps -p $IBC_PID > /dev/null; then
+        echo "ERROR: IBC process died!"
+        exit 1
+    fi
+    
+    if netstat -tlnp 2>/dev/null | grep -q ":7497"; then
+        echo "✓ IB Gateway is listening on port 7497!"
         break
     fi
-    echo "Waiting for IB Gateway to start... ($i/30)"
-    sleep 10
+    
+    echo "Waiting for IB Gateway to start... ($i/60)"
+    sleep 5
 done
 
-# Keep container running and show logs
-tail -f /root/ibc/logs/*.txt 2>/dev/null || tail -f /dev/null
+echo "IB Gateway startup complete"
+tail -f /dev/null
