@@ -46,9 +46,6 @@ EOL
 
 echo "Starting IB Gateway..."
 
-# Modify gatewaystart.sh to use our version
-sed -i "s/TWS_MAJOR_VRSN=.*/TWS_MAJOR_VRSN=${IB_GATEWAY_VERSION}/" /opt/ibc/gatewaystart.sh
-
 # Start IB Gateway using IBC
 cd /opt/ibc
 ./gatewaystart.sh -inline --tws-path ${IB_GATEWAY_ROOT} &

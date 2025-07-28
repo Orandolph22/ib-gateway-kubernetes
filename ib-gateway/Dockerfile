@@ -32,6 +32,9 @@ RUN cd /opt/ibc && \
     chmod -R +x /opt/ibc/*.sh && \
     chmod -R +x /opt/ibc/scripts/*.sh
 
+# Fix IBC version mismatch - CRITICAL FIX
+RUN sed -i 's/^TWS_MAJOR_VRSN=.*/TWS_MAJOR_VRSN=1030/' /opt/ibc/gatewaystart.sh
+
 # Copy custom entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
