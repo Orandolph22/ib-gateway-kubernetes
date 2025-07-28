@@ -28,8 +28,9 @@ EOL
 
 echo "Created jts.ini with TrustedIPs=${TRUSTED_IPS}"
 
-# Create IBC config
-cat <<EOL > /opt/ibc/config.ini
+# Create IBC config in the correct location - IBC expects it at ~/ibc/config.ini
+mkdir -p /root/ibc
+cat <<EOL > /root/ibc/config.ini
 IbLoginId=${TWS_USERID}
 IbPassword=${TWS_PASSWORD}
 TradingMode=${TRADING_MODE}
@@ -43,6 +44,8 @@ OverrideTwsApiPort=7497
 LogToConsole=yes
 FIX=no
 EOL
+
+echo "Created IBC config at /root/ibc/config.ini"
 
 echo "Starting IB Gateway..."
 
